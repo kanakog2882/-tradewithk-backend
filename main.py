@@ -1,20 +1,15 @@
 from flask import Flask, request, jsonify
-from sop_v74 import sop_v74  # ✅ Correct function from your strategy file
+from sop_v74 import sop_v74  # Make sure sop_v74.py is in the same folder
 
 app = Flask(__name__)
 
-# ✅ Check if backend is alive
 @app.route('/', methods=['GET'])
 def root_check():
     return '✅ TradeWithK backend is online and ready.', 200
 
-# ✅ Main POST endpoint for SOP strategy
-@app.route('/', methods=['POST'])
-def recommend_trade():
-    try:
-        data = request.get_json(force=True)  # 🔍 Handles bad headers too
-    except Exception as e:
-        return jsonify({"error": "Invalid JSON format", "details": str(e)}), 400
+@app.route('/signal', methods=['POST'])  # ✅ matches your GPT schema
+def run_sop_logic():
+    data = request.get_json(force=True)  # Force parsing even with minor header issues
 
     if not data:
         return jsonify({"error": "No JSON body received"}), 400
@@ -29,9 +24,12 @@ def recommend_trade():
 
     try:
         result = sop_v74(multi_tf_data, market_meta)
-        return jsonify(result), 200
+        return jsonify(result)
     except Exception as e:
-        return jsonify({"error": "SOP processing failed", "details": str(e)}), 500
+        return jsonify({
+            "error": "SOP processing failed",
+            "details": str(e)
+        }), 500
 
 if __name__ == '__main__':
     app.run(debug=False, host='0.0.0.0', port=8080)
