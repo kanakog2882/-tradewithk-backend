@@ -7,7 +7,7 @@ import pytz
 app = Flask(__name__)
 
 # Dhan credentials (keep them secret in production: use env vars!)
-DHAN_API_KEY = "<from flask import Flask, request, jsonify
+DHAN_API_KEY = "<from flask import Flask, request, jsonify>"
 from sop_v74 import sop_v74
 import requests
 from datetime import datetime, time
