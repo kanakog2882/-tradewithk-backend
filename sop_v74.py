@@ -1,5 +1,3 @@
-# SOP v7.4: Multi-Time-Frame Automated Trading Engine
-
 import numpy as np
 from typing import List, Dict
 
@@ -97,27 +95,22 @@ def extract(bars: List[dict]) -> Dict:
 # ───── ALIGNMENT AGGREGATOR ─────
 def align_signals(sig_spot, sig_ce, sig_pe, ce_vol_bonus=0.0):
     score, reasons = 0.0, []
-    # Spot + CE bullish
     if sig_spot["direction"] == sig_ce["direction"] == "bullish":
         score += sig_spot["score"] + sig_ce["score"] + 1.5 + ce_vol_bonus
         reasons.append("Spot+CE bullish alignment")
-    # Spot + PE bearish
     if sig_spot["direction"] == sig_pe["direction"] == "bearish":
         score += sig_spot["score"] + sig_pe["score"] + 1.5
         reasons.append("Spot+PE bearish alignment")
-    # Partial spot carry-over
     if sig_spot["direction"] == "bullish" and sig_ce["direction"] != "bullish":
         score += 0.5 * sig_spot["score"]
     if sig_spot["direction"] == "bearish" and sig_pe["direction"] != "bearish":
         score += 0.5 * sig_spot["score"]
-    # Conflict penalty
-    if (sig_ce["direction"] == sig_pe["direction"] != None and
-        sig_pe["score"] - sig_ce["score"] >= 1.0):
+    if (sig_ce["direction"] == sig_pe["direction"] != None and sig_pe["score"] - sig_ce["score"] >= 1.0):
         score -= 0.5
         reasons.append("Strong opposite-option conflict")
     return round(score,2), reasons
 
-# ───── CORE SOP v7.4, SINGLE TIMEFRAME ─────
+# ───── CORE SOP v7.4 ─────
 def sop_single_tf(spot_bars, ce_bars, pe_bars, md):
     regime = classify_regime(md["vix"], md["atr_14"], md["atr_median"])
     bull_th, bear_th = thresholds(regime, md["vix"])
@@ -145,7 +138,7 @@ def sop_single_tf(spot_bars, ce_bars, pe_bars, md):
         "reasons": reasons,
     }
 
-# ───── MULTI-TIMEFRAME ENGINE ─────
+# ───── MULTI-TF WRAPPER ─────
 def sop_v74(multi_tf_data, market_meta, evaluated_tfs=("3min", "5min", "15min"), consensus_needed=2):
     tf_results = {}
     for tf in evaluated_tfs:
@@ -181,9 +174,16 @@ def sop_v74(multi_tf_data, market_meta, evaluated_tfs=("3min", "5min", "15min"),
         "all_tf_results": tf_results,
     }
 
-# ---------- Example Usage -----------
-if __name__ == "__main__":
-    # Provide your real multi-timeframe OHLCV data below for spot, CE, PE;
-    # and real market_meta including vix, atr_14, atr_median, etc.
-    # See previous examples for data structure.
-    pass
+# ───── THIS FUNCTION IS MANDATORY FOR FLASK ─────
+def get_trade_signal(query):
+    # Temporary mock inputs; replace with real-time data later
+    multi_tf_data = {
+        "spot": {"3min": [], "5min": [], "15min": []},
+        "ce":   {"3min": [], "5min": [], "15min": []},
+        "pe":   {"3min": [], "5min": [], "15min": []},
+    }
+    market_meta = {
+        "vix": 14.5, "atr_14": 75.0, "atr_median": 65.0,
+        "ce_vol_spike": True, "higher_tf_bars": []
+    }
+    return sop_v74(multi_tf_data, market_meta)
