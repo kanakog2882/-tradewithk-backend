@@ -175,15 +175,9 @@ def sop_v74(multi_tf_data, market_meta, evaluated_tfs=("3min", "5min", "15min"),
     }
 
 # ───── THIS FUNCTION IS MANDATORY FOR FLASK ─────
-def get_trade_signal(query):
-    # Temporary mock inputs; replace with real-time data later
-    multi_tf_data = {
-        "spot": {"3min": [], "5min": [], "15min": []},
-        "ce":   {"3min": [], "5min": [], "15min": []},
-        "pe":   {"3min": [], "5min": [], "15min": []},
-    }
-    market_meta = {
-        "vix": 14.5, "atr_14": 75.0, "atr_median": 65.0,
-        "ce_vol_spike": True, "higher_tf_bars": []
-    }
-    return sop_v74(multi_tf_data, market_meta)
+ def sop_v74(multi_tf_data, market_meta,
+            evaluated_tfs=("3min", "5min", "15min"),
+            consensus_needed=2):
+    # your strategy logic...
+    return { ... }  # dictionary result
+
