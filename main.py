@@ -5,7 +5,7 @@ app = Flask(__name__)
 
 @app.route('/', methods=['POST'])
 def recommend_trade():
-    data = request.get_json()
+    data = request.get_json()  # ✅ Correct method to get JSON from POST body
 
     # Expecting these two main inputs in the POST body
     multi_tf_data = data.get("multi_tf_data")
