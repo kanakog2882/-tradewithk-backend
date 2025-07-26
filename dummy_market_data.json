@@ -1,0 +1,29 @@
+{
+  "multi_tf_data": {
+    "spot": {
+      "3min": [{"open": 47500, "high": 47620, "low": 47450, "close": 47580, "volume": 105000}],
+      "5min": [{"open": 47480, "high": 47650, "low": 47400, "close": 47590, "volume": 121000}],
+      "15min": [{"open": 47400, "high": 47700, "low": 47350, "close": 47600, "volume": 305000}]
+    },
+    "ce": {
+      "3min": [{"open": 300, "high": 345, "low": 295, "close": 340, "volume": 15000}],
+      "5min": [{"open": 290, "high": 350, "low": 285, "close": 345, "volume": 18000}],
+      "15min": [{"open": 270, "high": 355, "low": 265, "close": 350, "volume": 26000}]
+    },
+    "pe": {
+      "3min": [{"open": 290, "high": 310, "low": 275, "close": 280, "volume": 10000}],
+      "5min": [{"open": 295, "high": 305, "low": 270, "close": 275, "volume": 9500}],
+      "15min": [{"open": 300, "high": 310, "low": 260, "close": 270, "volume": 11000}]
+    }
+  },
+  "market_meta": {
+    "vix": 13.8,
+    "atr_14": 275,
+    "atr_median": 300,
+    "ce_vol_spike": true,
+    "higher_tf_bars": [
+      {"open": 47000, "high": 47500, "low": 46900, "close": 47400},
+      {"open": 47400, "high": 47650, "low": 47300, "close": 47550}
+    ]
+  }
+}
