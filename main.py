@@ -1,24 +1,24 @@
 from flask import Flask, request, jsonify
-from sop_v74 import sop_v74  # Import the correct function from your SOP file
+from sop_v74 import sop_v74  # This should match your actual function name
 
 app = Flask(__name__)
 
 @app.route('/', methods=['POST'])
 def recommend_trade():
-    data = request.get_json()  # ✅ Correct method to get JSON from POST body
+    try:
+        data = request.get_json(force=True)
 
-    # Expecting these two main inputs in the POST body
-    multi_tf_data = data.get("multi_tf_data")
-    market_meta = data.get("market_meta")
+        multi_tf_data = data.get("multi_tf_data")
+        market_meta = data.get("market_meta")
 
-    # Validate input
-    if not multi_tf_data or not market_meta:
-        return jsonify({"error": "Missing required data"}), 400
+        if not multi_tf_data or not market_meta:
+            return jsonify({"error": "Missing 'multi_tf_data' or 'market_meta' in body"}), 400
 
-    # Call SOP engine
-    result = sop_v74(multi_tf_data, market_meta)
+        result = sop_v74(multi_tf_data, market_meta)
+        return jsonify(result)
 
-    return jsonify(result)
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
 
 @app.route('/', methods=['GET'])
 def root_check():
