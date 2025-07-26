@@ -1,35 +1,21 @@
 from flask import Flask, request, jsonify
-from sop_v74 import sop_v74  # This is your SOP logic in a separate file
-import json
+from sop_v74 import get_trade_signal  # This should be defined in sop_v74.py
 
 app = Flask(__name__)
 
-@app.route("/")
-def home():
-    return "SOP v7.4 backend is running."
+@app.route('/', methods=['POST'])
+def recommend_trade():
+    data = request.get_json()
+    query = data.get('query', 'NIFTY')  # default fallback
+    signal = get_trade_signal(query)    # Your trade suggestion logic
+    return jsonify({
+        "query": query,
+        "recommendation": signal
+    })
 
-@app.route("/signal", methods=["POST"])
-def signal():
-    try:
-        data = request.json
-        symbol = data.get("symbol")
-        expiry = data.get("expiry")
-        timeframe = data.get("timeframe")
+@app.route('/', methods=['GET'])
+def root_check():
+    return 'TradeWithK backend is online and running.', 200
 
-        # --- Load dummy data (later replaced with live Dhan data) ---
-        with open("dummy_market_data.json") as f:
-            market_data = json.load(f)
-
-        result = sop_v74(
-            multi_tf_data=market_data["multi_tf_data"],
-            market_meta=market_data["market_meta"],
-            evaluated_tfs=["3min", "5min", "15min"]
-        )
-
-        return jsonify(result)
-
-    except Exception as e:
-        return jsonify({"error": str(e)}), 500
-
-if __name__ == "__main__":
-    app.run(host="0.0.0.0", port=8080)
+if __name__ == '__main__':
+    app.run(debug=False, host='0.0.0.0', port=8080)
