@@ -188,7 +188,8 @@ def sop_v74(multi_tf_data, market_meta, evaluated_tfs=("3min", "5min", "15min"),
         return {
             "action": "NO_TRADE",
             "confidence": "INSUFFICIENT",
-            "details": tf_results
+            "position_size_pct": 0,
+            "alignment_score": 0.0
         }
     agree_tfs = [tf for tf in evaluated_tfs if tf_results[tf]["action"] == trade]
     best_tf = max(agree_tfs, key=lambda t: tf_results[t]["alignment_score"])
@@ -197,9 +198,5 @@ def sop_v74(multi_tf_data, market_meta, evaluated_tfs=("3min", "5min", "15min"),
         "action": best_res["action"],
         "confidence": best_res["confidence"],
         "position_size_pct": best_res["position_size_pct"],
-        "alignment_score": best_res["alignment_score"],
-        "participating_timeframes": {tf: tf_results[tf]["alignment_score"] for tf in agree_tfs},
-        "confidence_factors": best_res["reasons"],
-        "patterns": best_res["patterns"],
-        "all_tf_results": tf_results
+        "alignment_score": best_res["alignment_score"]
     }
