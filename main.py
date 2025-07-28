@@ -1,29 +1,26 @@
 import logging
 from flask import Flask, request, jsonify
 from flask_cors import CORS
-from sop_v74 import sop_v74
 import requests
 from datetime import datetime, time, timedelta
 import pytz
+from sop_v74 import sop_v74
 
-# ====================== CREDENTIALS (Place here for demo/testing only!) ======================
+# ===== CREDENTIALS (for demo/testing) =====
 DHAN_API_KEY = "eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzUxMiJ9.eyJpc3MiOiJkaGFuIiwicGFydG5lcklkIjoiIiwiZXhwIjoxNzU2Mjg0NDc0LCJ0b2tlbkNvbnN1bWVyVHlwZSI6IlNFTEYiLCJ3ZWJob29rVXJsIjoiIiwiZGhhbkNsaWVudElkIjoiMTEwMTU2MzEyNiJ9.c960a8vrfw5726OtcMce5vCKZ8CdtPSKHJtIy1iYYiXOgB72EZOf8a4ANixM-sEAAPFJ0myoxkcsszn1xu4cfw"
 DHAN_ACCOUNT_ID = "1101563126"
-# ==============================================================================================
+# ==========================================
 
-# =========== FLASK APP & LOGGING ===========
 app = Flask(__name__)
-CORS(app)
+CORS(app, resources={r"/*": {"origins": "*"}})
 logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s: %(message)s")
 logger = logging.getLogger("twk-backend")
 
-# =========== MARKET HOURS ===========
 def is_market_open():
     india = pytz.timezone("Asia/Kolkata")
     now = datetime.now(india).time()
     return time(9, 15) <= now <= time(15, 30)
 
-# =========== DHAN API GETTER ===========
 def fetch_from_dhan(endpoint, symbol, interval="5", date=None):
     url = f"https://api.dhan.co/{endpoint}/{symbol}"
     headers = {
@@ -42,8 +39,6 @@ def fetch_from_dhan(endpoint, symbol, interval="5", date=None):
         logger.error(f"Dhan API ({endpoint}) failed: {e} | resp={getattr(resp, 'text', None)}")
         return {}, {}
 
-# =========== ROUTES ===========
-
 @app.route("/", methods=["GET"])
 def health():
     return "✅ TradeWithK backend running", 200
@@ -59,8 +54,8 @@ def run_sop_route():
         start_date = data.get("start_date")
         end_date = data.get("end_date")
 
+        # Historical backtest mode or closed market
         if mode == "backtest" or not is_market_open():
-            # Historical/batch
             results = []
             if start_date and end_date:
                 start_dt = datetime.strptime(start_date, "%Y-%m-%d")
@@ -119,6 +114,5 @@ def get_raw_data():
     return jsonify({"message": "Raw data endpoint—plug in your logic here."}), 200
 
 if __name__ == "__main__":
-    # For production: DO NOT use Flask's dev server. Use Gunicorn or similar:
-    # gunicorn -w 4 main:app
+    # For production, use: gunicorn -w 4 main:app
     app.run(host="0.0.0.0", port=8080)
