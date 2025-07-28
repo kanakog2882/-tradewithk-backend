@@ -3,15 +3,15 @@ from sop_v74 import sop_v74
 import requests
 from datetime import datetime, time
 import pytz
+import logging
 
 # --- Add robust logging ---
-import logging
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
-# --- PLACE YOUR CREDENTIALS BELOW ---
-DHAN_API_KEY = "eyJhbGciOiJIUzUxMiIsInR5cCI6IkpXVCJ9.eyJ0b2tlbkNvbnN1bWVyVHlwZSI6IlNFTEYiLCJwYXJ0bmVySWQiOiIiLCJkaGFuQ2xpZW50SWQiOiIyNTA3MjU4Mjc1Iiwid2ViaG9va1VybCI6IiIsImlzcyI6ImRoYW4iLCJleHAiOjE3NTYwMjI5MDF9.3hDa7VNM1_SpvBbjwS8GRm0mZHjBSkBnRMxdAgdVAQqdtHylFOAUKbO3mAe290I6adXhDDWBhSoESaWb92pygQ"
-DHAN_ACCOUNT_ID = "2507258275"
+# --- PLACE YOUR REAL DHAN CREDENTIALS BELOW ---
+DHAN_API_KEY = "eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzUxMiJ9.eyJpc3MiOiJkaGFuIiwicGFydG5lcklkIjoiIiwiZXhwIjoxNzU2Mjg0NDc0LCJ0b2tlbkNvbnN1bWVyVHlwZSI6IlNFTEYiLCJ3ZWJob29rVXJsIjoiIiwiZGhhbkNsaWVudElkIjoiMTEwMTU2MzEyNiJ9.c960a8vrfw5726OtcMce5vCKZ8CdtPSKHJtIy1iYYiXOgB72EZOf8a4ANixM-sEAAPFJ0myoxkcsszn1xu4cfw"
+DHAN_ACCOUNT_ID = "1101563126"
 
 app = Flask(__name__)
 
