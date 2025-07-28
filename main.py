@@ -13,9 +13,10 @@ logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 # --- DHAN Credentials (load securely from env or config) ---
-DHAN_API_KEY = os.getenv("DHAN_ACCESS_TOKEN")
-DHAN_ACCOUNT_ID = os.getenv("DHAN_ACCOUNT_ID")
+DHAN_API_KEY = os.getenv("eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzUxMiJ9.eyJpc3MiOiJkaGFuIiwicGFydG5lcklkIjoiIiwiZXhwIjoxNzU2Mjg0NDc0LCJ0b2tlbkNvbnN1bWVyVHlwZSI6IlNFTEYiLCJ3ZWJob29rVXJsIjoiIiwiZGhhbkNsaWVudElkIjoiMTEwMTU2MzEyNiJ9.c960a8vrfw5726OtcMce5vCKZ8CdtPSKHJtIy1iYYiXOgB72EZOf8a4ANixM-sEAAPFJ0myoxkcsszn1xu4cfw
+")
 
+DHAN_ACCOUNT_ID = os.getenv("1101563126")
 app = Flask(__name__)
 
 # === Utility: Check if market is open ===
