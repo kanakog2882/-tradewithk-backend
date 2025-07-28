@@ -1,4 +1,7 @@
+import os
+import requests
 import numpy as np
+import logging
 from typing import List, Dict
 
 # ───── UTILITIES ─────
@@ -37,6 +40,31 @@ def position_frac(score):
     if score >= 2: return 0.70
     if score >= 1: return 0.40
     return 0.00
+
+# ───── ERROR-RESILIENT DATA FETCH ─────
+def get_option_data(symbol: str):
+    url = f"https://api.dhan.co/options/chain?symbol={symbol}"
+    headers = {
+        "access-token": os.getenv("DHAN_ACCESS_TOKEN"),
+        "Content-Type": "application/json"
+    }
+
+    try:
+        response = requests.get(url, headers=headers, timeout=5)
+        if response.status_code != 200:
+            logging.error(f"Failed to fetch Dhan data: {response.status_code} | {response.text}")
+            return {"error": "Dhan API failed", "status": response.status_code}
+
+        data = response.json()
+        if not data:
+            logging.warning("Dhan API returned empty data.")
+            return {"error": "No data received from Dhan"}
+
+        return data
+
+    except Exception as e:
+        logging.error(f"Exception while fetching Dhan data: {str(e)}")
+        return {"error": str(e)}
 
 # ───── PATTERNS ─────
 def pin_bar(o, h, l, c, v, prev_v):
