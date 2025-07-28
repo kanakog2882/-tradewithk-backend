@@ -4,6 +4,11 @@ import requests
 from datetime import datetime, time
 import pytz
 
+# --- Add robust logging ---
+import logging
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
+
 # --- PLACE YOUR CREDENTIALS BELOW ---
 DHAN_API_KEY = "eyJhbGciOiJIUzUxMiIsInR5cCI6IkpXVCJ9.eyJ0b2tlbkNvbnN1bWVyVHlwZSI6IlNFTEYiLCJwYXJ0bmVySWQiOiIiLCJkaGFuQ2xpZW50SWQiOiIyNTA3MjU4Mjc1Iiwid2ViaG9va1VybCI6IiIsImlzcyI6ImRoYW4iLCJleHAiOjE3NTYwMjI5MDF9.3hDa7VNM1_SpvBbjwS8GRm0mZHjBSkBnRMxdAgdVAQqdtHylFOAUKbO3mAe290I6adXhDDWBhSoESaWb92pygQ"
 DHAN_ACCOUNT_ID = "2507258275"
@@ -23,10 +28,12 @@ def fetch_live_from_dhan(symbol):
         "access-token": DHAN_API_KEY,
         "account-id": DHAN_ACCOUNT_ID
     }
-    # --- You'll need the correct url/headers per Dhan documentation.
     resp = requests.get(url, headers=headers)
-    data = resp.json()
-    # --- Example parse logic. Adjust to match your Dhan API shape.
+    try:
+        data = resp.json()
+    except Exception as e:
+        logger.error(f"Dhan API live data response not JSON. status={resp.status_code}, error={str(e)}, text={resp.text}")
+        return {}, {}
     multi_tf_data = data.get("multi_tf_data", {})
     market_meta = data.get("market_meta", {})
     return multi_tf_data, market_meta
@@ -40,7 +47,11 @@ def fetch_hist_from_dhan(symbol, date):
     }
     params = {"date": date}
     resp = requests.get(url, headers=headers, params=params)
-    data = resp.json()
+    try:
+        data = resp.json()
+    except Exception as e:
+        logger.error(f"Dhan API historic data response not JSON. status={resp.status_code}, error={str(e)}, text={resp.text}")
+        return {}, {}
     multi_tf_data = data.get("multi_tf_data", {})
     market_meta = data.get("market_meta", {})
     return multi_tf_data, market_meta
@@ -59,17 +70,25 @@ def run_sop():
         # Decide what data to fetch
         if mode == "backtest" or not is_market_open():
             if not date:
+                logger.error(f"400 error: Date missing for backtest. Request body: {data}")
                 return jsonify({"error": "Date is required for backtest mode."}), 400
             multi_tf_data, market_meta = fetch_hist_from_dhan(symbol, date)
         else:
             multi_tf_data, market_meta = fetch_live_from_dhan(symbol)
         # Validate
         if not multi_tf_data or not market_meta:
+            logger.error(
+                f"400 error: Missing required keys. "
+                f"symbol={symbol}, mode={mode}, date={date}, "
+                f"multi_tf_data_present={bool(multi_tf_data)}, market_meta_present={bool(market_meta)}, "
+                f"request_body={data}"
+            )
             return jsonify({"error": "Missing required keys: 'multi_tf_data', 'market_meta'"}), 400
         # Run logic
         result = sop_v74(multi_tf_data, market_meta)
         return jsonify(result), 200
     except Exception as e:
+        logger.exception(f"500 error: SOP execution failed: {str(e)} Request body: {request.get_json(force=True)}")
         return jsonify({"error": f"SOP execution failed: {str(e)}"}), 500
 
 @app.route('/get_chart_data', methods=['GET'])
@@ -102,6 +121,7 @@ def get_news():
         ]
         return jsonify({"news": dummy_news}), 200
     except Exception as e:
+        logger.exception(f"500 error: News fetch failed: {str(e)}")
         return jsonify({"error": f"News fetch failed: {str(e)}"}), 500
 
 @app.route('/get_raw_data', methods=['GET'])
