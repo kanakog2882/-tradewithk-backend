@@ -5,18 +5,20 @@ import requests
 from datetime import datetime, time
 import pytz
 import logging
-from dotenv import load_dotenv
+# from dotenv import load_dotenv # Only needed if loading from .env
 
 # === Setup ===
-load_dotenv()
+# load_dotenv()  # Uncomment if using .env file for local development
+
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
-# --- DHAN Credentials (load securely from env or config) ---
-DHAN_API_KEY = os.getenv("eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzUxMiJ9.eyJpc3MiOiJkaGFuIiwicGFydG5lcklkIjoiIiwiZXhwIjoxNzU2Mjg0NDc0LCJ0b2tlbkNvbnN1bWVyVHlwZSI6IlNFTEYiLCJ3ZWJob29rVXJsIjoiIiwiZGhhbkNsaWVudElkIjoiMTEwMTU2MzEyNiJ9.c960a8vrfw5726OtcMce5vCKZ8CdtPSKHJtIy1iYYiXOgB72EZOf8a4ANixM-sEAAPFJ0myoxkcsszn1xu4cfw
-")
+# --- For production, ENV VARS are recommended. For DEV, you can hardcode as below: ---
 
-DHAN_ACCOUNT_ID = os.getenv("1101563126")
+# --- Place your credentials here ---
+DHAN_API_KEY = "eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzUxMiJ9.eyJpc3MiOiJkaGFuIiwicGFydG5lcklkIjoiIiwiZXhwIjoxNzU2Mjg0NDc0LCJ0b2tlbkNvbnN1bWVyVHlwZSI6IlNFTEYiLCJ3ZWJob29rVXJsIjoiIiwiZGhhbkNsaWVudElkIjoiMTEwMTU2MzEyNiJ9.c960a8vrfw5726OtcMce5vCKZ8CdtPSKHJtIy1iYYiXOgB72EZOf8a4ANixM-sEAAPFJ0myoxkcsszn1xu4cfw"
+DHAN_ACCOUNT_ID = "1101563126"
+
 app = Flask(__name__)
 
 # === Utility: Check if market is open ===
@@ -61,15 +63,15 @@ def fetch_hist_from_dhan(symbol, date):
 def health_check():
     return '✅ TradeWithK backend is running.', 200
 
-# === Run SOP ===
+# === Run SOP Endpoint ===
 @app.route('/run_sop', methods=['POST'])
-def run_sop_api():
+def run_sop():
     try:
         data = request.get_json(force=True) or {}
         mode = data.get("mode", "live")
         symbol = data.get("symbol", "NIFTY")
         date = data.get("date")
-
+        # Choose data fetch mode (live/backtest)
         if mode == "backtest" or not is_market_open():
             if not date:
                 logger.error(f"400 error: Date missing for backtest. Request body: {data}")
@@ -77,7 +79,7 @@ def run_sop_api():
             multi_tf_data, market_meta = fetch_hist_from_dhan(symbol, date)
         else:
             multi_tf_data, market_meta = fetch_live_from_dhan(symbol)
-
+        # Validate data
         if not multi_tf_data or not market_meta:
             logger.error(
                 f"400 error: Missing required keys. "
@@ -86,15 +88,22 @@ def run_sop_api():
                 f"request_body={data}"
             )
             return jsonify({"error": "Missing required keys: 'multi_tf_data', 'market_meta'"}), 400
-
         result = sop_v74(multi_tf_data, market_meta)
         return jsonify(result), 200
-
     except Exception as e:
         logger.exception(f"500 error: SOP execution failed: {str(e)} Request body: {request.get_json(force=True)}")
         return jsonify({"error": f"SOP execution failed: {str(e)}"}), 500
 
-# === OI Snapshot ===
+# === Chart Data Endpoint ===
+@app.route('/get_chart_data', methods=['GET'])
+def get_chart_data():
+    symbol = request.args.get("symbol")
+    timeframe = request.args.get("timeframe", "5min")
+    if not symbol:
+        return jsonify({"error": "Missing 'symbol' parameter"}), 400
+    return jsonify({"symbol": symbol, "timeframe": timeframe, "data": []}), 200
+
+# === OI Snapshot Endpoint ===
 @app.route('/get_oi_snapshot', methods=['GET'])
 def get_oi_snapshot():
     symbol = request.args.get("symbol", "NIFTY")
@@ -105,16 +114,7 @@ def get_oi_snapshot():
     }
     return jsonify(oi_data), 200
 
-# === Chart Data Placeholder ===
-@app.route('/get_chart_data', methods=['GET'])
-def get_chart_data():
-    symbol = request.args.get("symbol")
-    timeframe = request.args.get("timeframe", "5min")
-    if not symbol:
-        return jsonify({"error": "Missing 'symbol' parameter"}), 400
-    return jsonify({"symbol": symbol, "timeframe": timeframe, "data": []}), 200
-
-# === Market News Feed (Dummy) ===
+# === News Endpoint ===
 @app.route('/get_news', methods=['GET'])
 def get_news():
     try:
@@ -128,11 +128,10 @@ def get_news():
         logger.exception(f"500 error: News fetch failed: {str(e)}")
         return jsonify({"error": f"News fetch failed: {str(e)}"}), 500
 
-# === Raw Data Placeholder ===
+# === Raw Data Endpoint ===
 @app.route('/get_raw_data', methods=['GET'])
 def get_raw_data():
     return jsonify({"message": "Raw data endpoint—replace with your logic."}), 200
 
-# === Launch Server ===
-if __name__ == '__main__':
-    app.run(host='0.0.0.0', port=int(os.environ.get("PORT", 8080)))
+if __name__ == "__main__":
+    app.run(host="0.0.0.0", port=8080)
