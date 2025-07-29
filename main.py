@@ -3,6 +3,7 @@ import logging
 from flask import Flask, request, jsonify
 from flask_cors import CORS
 from sop_v74 import sop_v74
+from compress_utils import compress_data_for_sop
 import requests
 from datetime import datetime, time, timedelta
 import pytz
@@ -43,7 +44,7 @@ def fetch_from_dhan(endpoint, symbol, interval="5", date=None):
         logger.error(f"Dhan API ({endpoint}) failed: {e} | resp={getattr(resp, 'text', None)}")
         return {}, {}
 
-# ========== ROUTES ==========
+# ========== ROUTES ========== 
 
 @app.route("/", methods=["GET"])
 def health():
@@ -71,7 +72,8 @@ def run_sop_route():
                     dt_str = start_dt.strftime("%Y-%m-%d")
                     multi_tf_data, market_meta = fetch_from_dhan("markethistory", symbol, interval, dt_str)
                     if multi_tf_data and market_meta:
-                        result = sop_v74(multi_tf_data, market_meta)
+                        compressed_data, compressed_meta = compress_data_for_sop(multi_tf_data, market_meta)
+                        result = sop_v74(compressed_data, compressed_meta)
                         results.append({"date": dt_str, "result": result})
                     else:
                         results.append({"date": dt_str, "error": "Data unavailable"})
@@ -97,7 +99,8 @@ def run_sop_route():
                 }
             }), 400
 
-        result = sop_v74(multi_tf_data, market_meta)
+        compressed_data, compressed_meta = compress_data_for_sop(multi_tf_data, market_meta)
+        result = sop_v74(compressed_data, compressed_meta)
         return jsonify({
             "mode": mode,
             "is_market_open": is_market_open(),
