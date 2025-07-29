@@ -44,7 +44,7 @@ def fetch_from_dhan(endpoint, symbol, interval="5", date=None):
         logger.error(f"Dhan API ({endpoint}) failed: {e} | resp={getattr(resp, 'text', None)}")
         return {}, {}
 
-# ========== ROUTES ========== 
+# ========== ROUTES ==========
 
 @app.route("/", methods=["GET"])
 def health():
@@ -72,8 +72,8 @@ def run_sop_route():
                     dt_str = start_dt.strftime("%Y-%m-%d")
                     multi_tf_data, market_meta = fetch_from_dhan("markethistory", symbol, interval, dt_str)
                     if multi_tf_data and market_meta:
-                        compressed_data, compressed_meta = compress_data_for_sop(multi_tf_data, market_meta)
-                        result = sop_v74(compressed_data, compressed_meta)
+                        compressed = compress_data_for_sop(multi_tf_data, market_meta)
+                        result = sop_v74(compressed["spot"], compressed["market_meta"])
                         results.append({"date": dt_str, "result": result})
                     else:
                         results.append({"date": dt_str, "error": "Data unavailable"})
@@ -99,8 +99,8 @@ def run_sop_route():
                 }
             }), 400
 
-        compressed_data, compressed_meta = compress_data_for_sop(multi_tf_data, market_meta)
-        result = sop_v74(compressed_data, compressed_meta)
+        compressed = compress_data_for_sop(multi_tf_data, market_meta)
+        result = sop_v74(compressed["spot"], compressed["market_meta"])
         return jsonify({
             "mode": mode,
             "is_market_open": is_market_open(),
