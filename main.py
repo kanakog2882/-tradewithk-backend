@@ -124,14 +124,6 @@ def get_chart_data():
         "market_meta": market_meta
     }), 200
 
-@app.route("/get_news", methods=["GET"])
-def get_news():
-    dummy_news = [
-        {"headline": "Nifty ends volatile", "source": "Economic Times"},
-        {"headline": "BANKNIFTY OI unwinding at 47000CE", "source": "MoneyControl"},
-    ]
-    return jsonify({"news": dummy_news}), 200
-
 @app.route("/get_raw_data", methods=["GET"])
 def get_raw_data():
     return jsonify({"message": "Raw data endpoint—plug in your logic here."}), 200
