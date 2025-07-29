@@ -1,26 +1,29 @@
 import logging
 from flask import Flask, request, jsonify
 from flask_cors import CORS
+from sop_v74 import sop_v74
 import requests
 from datetime import datetime, time, timedelta
 import pytz
-from sop_v74 import sop_v74
 
-# ===== CREDENTIALS (for demo/testing) =====
+# ====================== CREDENTIALS (Place here for demo/testing only!) ======================
 DHAN_API_KEY = "eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzUxMiJ9.eyJpc3MiOiJkaGFuIiwicGFydG5lcklkIjoiIiwiZXhwIjoxNzU2Mjg0NDc0LCJ0b2tlbkNvbnN1bWVyVHlwZSI6IlNFTEYiLCJ3ZWJob29rVXJsIjoiIiwiZGhhbkNsaWVudElkIjoiMTEwMTU2MzEyNiJ9.c960a8vrfw5726OtcMce5vCKZ8CdtPSKHJtIy1iYYiXOgB72EZOf8a4ANixM-sEAAPFJ0myoxkcsszn1xu4cfw"
 DHAN_ACCOUNT_ID = "1101563126"
-# ==========================================
+# ==============================================================================================
 
+# =========== FLASK APP & LOGGING ===========
 app = Flask(__name__)
-CORS(app, resources={r"/*": {"origins": "*"}})
+CORS(app)
 logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s: %(message)s")
 logger = logging.getLogger("twk-backend")
 
+# =========== MARKET HOURS ===========
 def is_market_open():
     india = pytz.timezone("Asia/Kolkata")
     now = datetime.now(india).time()
     return time(9, 15) <= now <= time(15, 30)
 
+# =========== DHAN API GETTER ===========
 def fetch_from_dhan(endpoint, symbol, interval="5", date=None):
     url = f"https://api.dhan.co/{endpoint}/{symbol}"
     headers = {
@@ -34,10 +37,13 @@ def fetch_from_dhan(endpoint, symbol, interval="5", date=None):
         resp = requests.get(url, headers=headers, params=params, timeout=10)
         resp.raise_for_status()
         data = resp.json()
+        logger.info(f"Fetched raw response from {endpoint}: {data}")  # 🔍 Added logging for traceability
         return data.get("multi_tf_data", {}), data.get("market_meta", {})
     except Exception as e:
         logger.error(f"Dhan API ({endpoint}) failed: {e} | resp={getattr(resp, 'text', None)}")
         return {}, {}
+
+# =========== ROUTES ===========
 
 @app.route("/", methods=["GET"])
 def health():
@@ -54,8 +60,9 @@ def run_sop_route():
         start_date = data.get("start_date")
         end_date = data.get("end_date")
 
-        # Historical backtest mode or closed market
-        if mode == "backtest" or not is_market_open():
+        logger.info(f"SOP request received | Mode: {mode} | Symbol: {symbol} | Interval: {interval} | Date: {date} | Range: {start_date} to {end_date} | Market Open: {is_market_open()}")
+
+        if mode == "backtest":
             results = []
             if start_date and end_date:
                 start_dt = datetime.strptime(start_date, "%Y-%m-%d")
@@ -78,11 +85,21 @@ def run_sop_route():
             multi_tf_data, market_meta = fetch_from_dhan("marketlive", symbol, interval)
 
         if not (multi_tf_data and market_meta):
-            logger.error(f"Missing chart keys for {symbol}, mode={mode}, interval={interval}, date={date}. Raw req: {data}")
-            return jsonify({"error": "Missing required keys: multi_tf_data, market_meta"}), 400
+            logger.error(f"❌ Empty chart data for {symbol} | Mode={mode} | Interval={interval} | Date={date} | Full response={multi_tf_data, market_meta}")
+            return jsonify({
+                "error": "Missing required keys: multi_tf_data, market_meta",
+                "details": {
+                    "symbol": symbol,
+                    "mode": mode,
+                    "interval": interval,
+                    "date": date,
+                    "reason": "Chart API returned empty or invalid structure"
+                }
+            }), 400
 
         result = sop_v74(multi_tf_data, market_meta)
-        return jsonify(result), 200
+        return jsonify({"mode": mode, "is_market_open": is_market_open(), "symbol": symbol, "interval": interval, "result": result}), 200
+
     except Exception as e:
         logger.exception("SOP logic/internal error")
         return jsonify({"error": f"SOP execution failed: {str(e)}"}), 500
@@ -114,5 +131,6 @@ def get_raw_data():
     return jsonify({"message": "Raw data endpoint—plug in your logic here."}), 200
 
 if __name__ == "__main__":
-    # For production, use: gunicorn -w 4 main:app
+    # For production: DO NOT use Flask's dev server. Use Gunicorn or similar:
+    # gunicorn -w 4 main:app
     app.run(host="0.0.0.0", port=8080)
