@@ -48,10 +48,10 @@ def fetch_from_dhan(symbol, interval="5", date=None, mode="live"):
         resp.raise_for_status()
         data = resp.json()
         logger.info(f"Fetched response from Dhan: {data}")
-        return data
+        return data.get("multi_tf_data", {}), data.get("market_meta", {})
     except Exception as e:
         logger.error(f"Dhan API fetch failed: {e} | Response: {getattr(resp, 'text', None)}")
-        return {}
+        return {}, {}
 
 # ========== ROUTES ==========
 @app.route("/", methods=["GET"])
@@ -78,9 +78,9 @@ def run_sop_route():
 
             while start_dt <= end_dt:
                 dt_str = start_dt.strftime("%Y-%m-%d")
-                raw_data = fetch_from_dhan(symbol, interval, dt_str, mode="backtest")
-                if raw_data:
-                    compressed = compress_data_for_sop(raw_data)
+                multi_tf_data, market_meta = fetch_from_dhan(symbol, interval, dt_str, mode="backtest")
+                if multi_tf_data and market_meta:
+                    compressed = compress_data_for_sop(multi_tf_data, market_meta)
                     result = sop_v74(compressed["spot"], compressed["market_meta"])
                     results.append({"date": dt_str, "result": result})
                 else:
@@ -90,13 +90,13 @@ def run_sop_route():
             return jsonify({"symbol": symbol, "mode": mode, "results": results}), 200
 
         else:
-            raw_data = fetch_from_dhan(symbol, interval, date, mode="live")
+            multi_tf_data, market_meta = fetch_from_dhan(symbol, interval, date, mode="live")
 
-            if not raw_data:
+            if not (multi_tf_data and market_meta):
                 logger.error(f"❌ Chart data missing | {symbol} | {mode} | {interval}")
                 return jsonify({"error": "Missing chart data from live API"}), 400
 
-            compressed = compress_data_for_sop(raw_data)
+            compressed = compress_data_for_sop(multi_tf_data, market_meta)
             result = sop_v74(compressed["spot"], compressed["market_meta"])
 
             return jsonify({
@@ -116,12 +116,17 @@ def get_chart_data():
     symbol = request.args.get("symbol", "13")
     interval = request.args.get("interval", "5")
 
-    raw_data = fetch_from_dhan(symbol, interval, mode="live")
+    multi_tf_data, market_meta = fetch_from_dhan(symbol, interval, mode="live")
 
-    if not raw_data:
+    if not (multi_tf_data and market_meta):
         return jsonify({"error": "Missing data from live chart API"}), 500
 
-    return jsonify(raw_data), 200
+    return jsonify({
+        "symbol": symbol,
+        "interval": interval,
+        "multi_tf_data": multi_tf_data,
+        "market_meta": market_meta
+    }), 200
 
 @app.route("/get_raw_data", methods=["GET"])
 def get_raw_data():
